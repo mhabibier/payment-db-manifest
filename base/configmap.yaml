@@ -1,0 +1,18 @@
+# payment-postgres/configmap.yaml
+# Non-sensitive PostgreSQL configuration for payment-service.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payment-postgres-config
+  namespace: payment-postgres
+  labels:
+    app.kubernetes.io/name: payment-postgres
+    app.kubernetes.io/component: config
+data:
+  # Tuning PostgreSQL untuk workload microservice payment
+  # Argumen ini dilewatkan sebagai POSTGRES_INITDB_ARGS atau dimount sebagai config
+  PGDATA: "/var/lib/postgresql/data/pgdata"
+
+  # Metode autentikasi host untuk keamanan koneksi
+  POSTGRES_HOST_AUTH_METHOD: "scram-sha-256"

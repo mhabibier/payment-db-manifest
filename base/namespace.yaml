@@ -1,0 +1,10 @@
+# Dedicated namespace for auth-service PostgreSQL.
+# Isolates DB resources from application namespace.
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: auth-postgres
+  labels:
+    app.kubernetes.io/name:       auth-postgres
+    app.kubernetes.io/managed-by: kubectl
