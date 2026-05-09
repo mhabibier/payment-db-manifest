@@ -27,11 +27,43 @@ spec:
         runAsGroup: 999
         fsGroup: 999
         runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       terminationGracePeriodSeconds: 60
+      initContainers:
+        - name: fix-permissions
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            runAsNonRoot: false
+          command:
+            - sh
+            - -c
+            - |
+              echo "==> Fixing ownership on data directory..."
+              install -d -o 999 -g 999 -m 0700 /var/lib/postgresql/data/pgdata
+              chown -R 999:999 /var/lib/postgresql/data
+              chmod 0700 /var/lib/postgresql/data/pgdata
+
+              echo "==> Fixing ownership on runtime directory..."
+              install -d -o 999 -g 999 -m 0775 /var/run/postgresql
+              chown 999:999 /var/run/postgresql
+
+              echo "==> Permissions fixed."
+          volumeMounts:
+            - name: payment-postgres-data
+              mountPath: /var/lib/postgresql/data
       containers:
         - name: postgres
           image: postgres:16-alpine
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           ports:
             - name: postgres
               containerPort: 5432
@@ -57,11 +89,9 @@ spec:
           livenessProbe:
             exec:
               command:
-                - pg_isready
-                - -U
-                - $(POSTGRES_USER)
-                - -d
-                - $(POSTGRES_DB)
+                - sh
+                - -c
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
@@ -69,11 +99,9 @@ spec:
           readinessProbe:
             exec:
               command:
-                - pg_isready
-                - -U
-                - $(POSTGRES_USER)
-                - -d
-                - $(POSTGRES_DB)
+                - sh
+                - -c
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
             initialDelaySeconds: 10
             periodSeconds: 5
             timeoutSeconds: 3
